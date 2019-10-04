@@ -22,7 +22,11 @@ Download the application here: https://www.getpostman.com/downloads/
 ## Table of Contents
 
 1. [Workspace](#Workspace)
+1. [Basic Requests](#Basic-Requests)
+1. [Parameterized Data](#Parameterized-Data)
 1. [Tests](#Tests)
+1. [JSON Schema Validation](#JSON-Schema-Validation)
+1. [Collections](#Collections)
 1. [Collection Runner](#Collection-Runner)
 1. [Newman](#Newman)
 1. [Monitors](#Monitors)
@@ -62,13 +66,86 @@ Basic interface:
 
 ------
 
-<!-- ## Basic Requests -->
+## Basic Requests
 
-<!-- ### GET Requests -->
+The Postman Echo collection is included in your Postman app download. It’s a good way to try out different request types.
 
-<!-- ### POST Requests -->
+https://docs.postman-echo.com/?version=latest
 
-<!-- ## Parameterized Data -->
+![basic requests 1](./assets/basic-requests-1.png)
+
+### GET Requests
+
+Get requests are used to retrieve information from the given URL.
+
+1. Set your HTTP request to GET.
+2. In the request URL field, input the link
+3. Click Send
+4. You will see 200 OK Message
+5. The results in the body are shown at the bottom
+
+![basic requests 2](./assets/basic-requests-2.png)
+
+### POST Requests
+
+Post requests are different from Get request as there is data manipulation with the user adding data to the endpoint.
+
+1. Set your HTTP request to POST.
+2. Input the link in request url. Ex. https://jsonplaceholder.typicode.com/users
+3. Switch to the Body tab
+
+![basic requests 3](./assets/basic-requests-3.png)
+
+In the Body tab,
+
+1. Click a content type. If sending JSON data, click "raw".
+
+    a. Select a content type (Ex. JSON)
+
+![basic requests 4](./assets/basic-requests-4.png)
+
+Make sure the data that you enter is formatted properly.
+
+![basic requests 5](./assets/basic-requests-5.png)
+
+1. Click Send.
+2. For this example, "Status: 201 Created" should be displayed
+3. Posted data shows up in the body
+
+![basic requests 6](./assets/basic-requests-6.png)
+
+
+------
+
+## Parameterized Data
+
+Instead of creating the same requests with different data, you can use variables with parameters. These data can be from a data file or an environment variable. Parameterization helps to avoid repetition of the same tests and iterations can be used for automation testing.
+
+There are two types of variables – global and environment. Global variables are for all requests, environment variables are defined per specific environment which can be selected from a drop-down or no environment can be selected.
+
+Parameters are created through the use of double curly brackets: `{{sample}}`.
+
+![parameterized data 1](./assets/parameterized-data-1.png)
+
+### Environments
+
+To use the parameter, you need to set the environment:
+
+1. Click the eye icon
+2. Click edit to set the variable to a global environment which can be used in all collections.
+
+![parameterized data 2](./assets/parameterized-data-2.png)
+
+For global variables
+
+1. Set the name of the variable and the value (which is https://jsonplaceholder.typicode.com in this example)
+2. Click Save.
+
+![parameterized data 3](./assets/parameterized-data-3.png)
+
+Note: Always ensure that your parameters have a source, such as an environment variable or data file, to avoid errors.
+
+------
 
 ## Tests
 
@@ -88,11 +165,173 @@ A solid test suite will include many edge cases, intentional bad inputs (to test
 
 For all of these reasons, it's recommended that you keep your API tests in a separate collection from your API documentation.
 
+Postman Tests are JavaScript codes added to requests that help you verify results such as successful or failed status, comparison of expected results, etc. It usually starts with pm.test. It can be compared to asserts, verify commands available in other tools.
+
+1. Switch to the tests tab. On the right side are snippet codes.
+2. From the snippets section, click on "Status code: Code is 200".
+3. The example code will appear in the window.
+
+![tests 1](./assets/tests-1.png)
+
+Now click Send. The test result should now be displayed.
+
+![tests 2](./assets/tests-2.png)
+
+To compare the expected result to the actual result:
+
+1. From the snippets section, click on "Response body:JSON value check".
+
+![tests 3](./assets/tests-3.png)
+
+The results:
+
+![tests 4](./assets/tests-4.png)
+
+### Code reuse between requests
+
+It is very convenient for some piece of code to be re-used between a request to prevent having to copy/paste it. It is possible to do it by defining a helper function with verifications which are saved as a global variable in the first request from your test scenario.
+
+Then from other requests, the helpers are taken from global variables and the verification functions can be used.
+
+Setting up helpers:
+
+```js
+pm.globals.set("loadHelpers", function loadHelpers() {
+    let helpers = {};
+
+    helpers.verifyFoo1 = function verifyFoo1(value) {
+        var jsonData = JSON.parse(responseBody);
+        tests["Foo1 value is: " + value]
+            = jsonData.args.foo1 === value;
+    }
+
+    // ...additional helpers
+
+    return helpers;
+} + '; loadHelpers();');
+```
+
+Using the saved helpers:
+
+```js
+var helpers = eval(globals.loadHelpers);
+helpers.verifyFoo1('bar1');
+```
+
 ------
 
-<!-- ## JSON Schema Validation -->
+## JSON Schema Validation
 
-<!-- ## Collections -->
+Many modern APIs use some form of JSON Schema to define the structure of their requests and responses. Postman includes the tv4 library, which makes it easy to write tests to verify that your API responses comply with your JSON Schema definitions.
+
+Example:
+
+```js
+// Define the JSON Schema
+const jsonSchema = {
+  "required": ["args"],
+  "properties": {
+    "args": {
+      "type": "object",
+      "required": ["foo1", "foo2"],
+      "properties": {
+        "foo1": {
+          "type": "string",
+          "enum": ["bar1"]
+        },
+        "foo2": {
+          "type": "string",
+          "enum": ["bar2"]
+        },
+        "foo3": {
+          "type": "string",
+          "enum": ["bar3"]
+        }
+      }
+    }
+  }
+};
+
+// Test whether the response matches the schema
+var jsonData = JSON.parse(responseBody);
+tests["Data is valid"] = tv4.validate(jsonData, jsonSchema);
+```
+
+Of course, you probably wouldn’t want to hard code your JSON Schema in your test script, especially since you may need to use the same schema for many requests in your collection. So, instead, you could store the schema as a JSON string in a Postman environment variable. Then you can simply use the variable in your test script, like this:
+
+```js
+var jsonData = JSON.parse(responseBody);
+
+// Load the JSON Schema
+const jsonSchema = JSON.parse(globals.jsonSchema);
+
+// Test if the JSON schema was found within the variables
+tests["Schema found"] = !!jsonSchema;
+
+if (jsonSchema) {
+    // Test whether the response matches the schema
+    tests["Data is valid"] = tv4.validate(jsonData, jsonSchema);
+}
+```
+
+### Resuse code
+
+You can also reuse JavaScript code the same way by leveraging the eval() function.
+
+There’s no limit to the amount of code that can be stored in a variable and reused this way. In fact, you can use this trick to reuse entire JavaScript libraries, including many third-party libraries from NPM, Bower, and GitHub.
+
+First request in the collection:
+
+```js
+// Save common tests in a global variable
+postman.setGlobalVariable("commonTests", () => {
+  // The Content-Type must be JSON
+  tests["Content-Type header is set"] = postman.getResponseHeader("Content-Type") === "application/json";
+
+  // The response time must be less than 500 milliseconds
+  tests["Response time is acceptable"] = responseTime < 500;
+
+  // The response body must include an "id" property
+  var data = JSON.parse(responseBody);
+  tests["Response has an ID"] = data.id !== undefined;
+});
+```
+
+Other requests in the collection:
+
+```js
+Other requests in the collection:
+// First, run the common tests
+eval(globals.commonTests)();
+
+// Then run any request-specific tests
+tests["Status code is 200"] = responseCode.code === 200;
+```
+
+------
+
+## Collections
+
+Collections play an important role in organizing test suites. They can be imported and exported, making it easy to share collections amongst a team.
+
+![collections 1](./assets/collections-1.png)
+
+![collections 2](./assets/collections-2.png)
+
+![collections 3](./assets/collections-3.png)
+
+When creating a new request, you can save it directly to a collection.
+
+1. Select the collection
+2. Click "Save to ..."
+
+![collections 4](./assets/collections-4.png)
+
+The collection should now contain the new request:
+
+![collections 5](./assets/collections-5.png)
+
+------
 
 ## Collection Runner
 
@@ -216,3 +455,17 @@ Private mock servers require users to add a Postman API key in the request heade
 ![mock server 1](./assets/mock-server-1.png)
 
 Follow the rest of the instructions to set up the mock server.
+
+------
+
+## Resources/Tutorials
+
+[Postman Tutorial for Beginners with API Testing Example](https://www.guru99.com/postman-tutorial.html)
+
+[API testing tips from a Postman professional](https://blog.getpostman.com/2017/07/28/api-testing-tips-from-a-postman-professional/)
+
+[Setting up a mock server](https://learning.getpostman.com/docs/postman/mock_servers/setting_up_mock/)
+
+[Setting up a monitor](https://learning.getpostman.com/docs/postman/monitors/setting_up_monitor)
+
+[Command line integration with Newman](https://learning.getpostman.com/docs/postman/collection_runs/command_line_integration_with_newman)
