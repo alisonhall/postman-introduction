@@ -19,6 +19,18 @@ Download the application here: https://www.getpostman.com/downloads/
 
 ------
 
+## Table of Contents
+
+1. [Workspace](#Workspace)
+1. [Tests](#Tests)
+1. [Collection Runner](#Collection-Runner)
+1. [Newman](#Newman)
+1. [Monitors](#Monitors)
+1. [Dynamic Workflows](#Dynamic-Workflows)
+1. [Mock Servers](#Mock-Servers)
+
+------
+
 ## Workspace
 
 The startup screen:
@@ -74,7 +86,7 @@ Many people use Postman Collections to document their APIs, either as a collecti
 
 A solid test suite will include many edge cases, intentional bad inputs (to test error handling), and possibly reveal sensitive information, all of which would be irrelevant or confusing for your API’s consumers.
 
-For all of these reasons, I highly recommend that you keep your API tests in a separate collection from your API documentation.
+For all of these reasons, it's recommended that you keep your API tests in a separate collection from your API documentation.
 
 ------
 
